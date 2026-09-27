@@ -245,36 +245,4 @@ npm run dev
 
 ---
 
-## 🎓 SDE Internship Interview Technical Q&A
 
-<details>
-<summary><strong>1. Why use Redis Sorted Sets for the Leaderboard instead of querying MongoDB?</strong></summary>
-
-- **Time Complexity**: MongoDB requires an `O(N log N)` scan and sort on the `points` field across all users for global rankings. Redis Sorted Sets maintain a skip list / balanced search tree in memory, offering `O(log N)` for `ZADD` / `ZINCRBY` and `O(log N + M)` for `ZREVRANGE` / `ZREVRANK`.
-- **High Throughput**: Under high concurrency (hundreds of users completing tasks simultaneously), querying Redis prevents expensive table scans and disk I/O on MongoDB.
-- **Resilience**: MongoDB acts as the system of record. Redis is synchronized on startup and hourly to guarantee data durability.
-</details>
-
-<details>
-<summary><strong>2. How does StudySync handle JWT token revocation on logout?</strong></summary>
-
-- Traditional JWTs are stateless and remain valid until their expiration timestamp (`exp`).
-- StudySync implements a **Redis Token Blacklist**: Upon logout, the token is stored in Redis (`blacklist:<token>`) with a Time-To-Live (TTL) equal to the token's remaining lifespan.
-- The `authenticate` middleware and Socket.IO handshake check Redis before validating requests. Once expired, Redis automatically evicts the key, preventing unbounded memory growth.
-</details>
-
-<details>
-<summary><strong>3. How does StudySync prevent point duplication abuse in tasks?</strong></summary>
-
-- Each task document maintains a `pointsAwarded: { type: Boolean, default: false }` flag.
-- Points (+10) are only awarded to the assigned user upon the **first transition** from `TODO`/`IN_PROGRESS` $\rightarrow$ `COMPLETED`.
-- If a user toggles the task back to `TODO` and then to `COMPLETED` again, the server detects `pointsAwarded === true` and skips incrementing points in MongoDB and Redis.
-</details>
-
-<details>
-<summary><strong>4. Why separate Frontend (Vercel) and Backend (Render Docker)?</strong></summary>
-
-- **Static Asset Performance**: Vercel serves the compiled React Single Page Application (SPA) globally from edge CDNs with sub-second response times.
-- **WebSocket Persistence**: Render keeps the Dockerized Node.js instance running continuously to maintain persistent, bidirectional WebSocket connections via Socket.IO, which serverless functions cannot do.
-- **Managed Reliability**: Using MongoDB Atlas and Redis Cloud ensures persistent data is decoupled from container lifecycle restarts.
-</details>
